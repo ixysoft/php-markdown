@@ -16,3 +16,12 @@ markdown translater
 12. 1-6级标题
 
 当前版本(1.0版本)暂时不支持表格的显示
+
+**使用方法:**
+```php
+<?php
+  require 'MD.php'
+  
+  $md=new MD('test.md');  //加载指定markdown文件
+  $md->output();          //将解析内容输出
+```
