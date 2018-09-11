@@ -3,7 +3,7 @@
 	Header('Content:text/html;charset=utf-8');
 ?>
 <style>
-	body,ul,li,img,p{
+	body,ol,ul,li,img,p{
 		padding:0;
 		margin:0;
 		border:none;
@@ -71,10 +71,11 @@
 	
 	code,pre{
 		border-radius:5px;
-		border:solid 1px #bbb;
-		background-color:#f0f0f0;
+		border:solid 1px #eee;
+		background-color:#f9f9f9;
 		font-family: consolas;
 		font-size:14px;
+		box-shadow: 1px 2px 3px #ddd;
 	}
 
 	code{
