@@ -14,7 +14,7 @@
 	}
 
 	body,ul{
-		padding:0px 20px;
+		padding:10px 20px;
 	}
 
 	blockquote{
@@ -24,6 +24,8 @@
 		line-height:24px;
 		padding:0px 10px;
 		margin:0;
+		color:#333;
+		font-size:12px;
 		font-style: italic;
 		font-family: consolas,楷体;
 	}
@@ -31,19 +33,35 @@
 	table,td,th{
 		border:solid 1px #ddd;
 		border-collapse: collapse;
-		padding:5px;
+		padding:10px;
+		font-family: consolas;
+		font-size:14px;
 	}
 
-	tr:nth-child(even),th{
+	table{
+		margin:10px 0;
+	}
+
+	tr:nth-child(even){
 		background-color:#eee;
+	}
+	
+	code,pre{
+		border-radius:5px;
+		border:solid 1px #bbb;
+		background-color:#f0f0f0;
+		font-family: consolas;
+		font-size:14px;
+	}
+
+	code{
+		padding:2px 12px;
+		display: inline-block;
+		margin:10px 0;
 	}
 
 	pre{
-		padding:12px;
-		border:solid 1px #bbb;
-		background-color:#eee;
-		font-family: consolas;
-		font-size:14px;
+		padding:10px 12px;
 	}
 </style>
 <?php
@@ -70,8 +88,12 @@ class MD{
 	private $file;			//当前文件
 	private $mdGen;			//生成器
 	private $flag;			//当前标志
+	private $flag_pre;		//上一次的flag
+	private $flag_like;		//假定类型
+
 	private $line_count;	//总行数
 	private $lines;			//所有行
+	private $buf;			//缓存行
 
 	public function __construct($filename){
 		$this->file = $filename;			//设置当前文件
@@ -108,6 +130,7 @@ class MD{
 	//解析
 	private function parse(){
 		$ctnt = $this->mdGen;	//生成器
+		$ret=array();
 		if($ctnt != null){
 			$ret = array();
 			foreach($ctnt as $line){
@@ -116,18 +139,21 @@ class MD{
 				if(strlen($line)){
 					$ch = $line[0];	//判断第一个字符
 					$type=ctype_punct($ch);//标点符号
-					$this->lines[] = $this->parseLine($line,$type);	//解析行
+					$ret[] = $this->parseLine($line,$type);	//解析行
 				}else{
 					switch($this->flag){
 						case 'ul':
 						case 'ol':
 							echo "</$this->flag>";
+							$this->flag_pre = $this->flag;
 							$this->flag = 'idel';
 						break;
 					}
 				}
 			}
 		}
+		$this->lines = $ret;
+		return $ret;
 	}
 
 	//生成blockquote
@@ -142,6 +168,36 @@ class MD{
 	}
 
 	/**
+	 *	生成一行新的表格列
+	 *	$data:需要输入的数据
+	 *	$type:生成类型
+	 *	$wrap:最快层包裹
+	 *	$sep:分隔符
+	 */
+	private function genRow($data,$type='td',$wrap='tr',$sep='|'){
+		$ret='';
+		$mat = explode($sep,$data);
+		foreach($mat as $elem)
+			$ret.="<$type>".$elem."</$type>";
+		return "<$wrap>".$ret."</$wrap>";
+	}
+
+	/**
+	 *	解析行内元素
+	 *	bold,italic,code,link,pic
+	 */
+	private function parseInner($str){
+		$str=preg_replace('/\*\*\*([^\*\n\r]+)\*\*\*/','<b><i>\1</i></b>',$str);		//加粗并加斜字体
+		$str=preg_replace('/\*\*([^\*\n\r]+)\*\*/','<b>\1</b>',$str);					//加粗字体
+		$str=preg_replace('/\*([^\*\n\r]+)\*/','<i>\1</i>',$str);						//斜体
+		$str=preg_replace('/```([^`\n\r]+)```/','<code>\1</code>',$str);					//代码
+		$str=preg_replace('/`([^`\n\r]+)`/','<code>\1</code>',$str);						//代码
+		$str=preg_replace('/!\[([^\]\r\n]+)\]\(([^\]\r\n]+)\)/','<img src="\2" alt="\1" title="\1">',$str);	//图片
+		$str=preg_replace('/\[([^\]\r\n]+)\]\(([^\]\r\n]+)\)/','<a href="\2">\1</a>',$str);	//图片
+		return $str;
+	}
+
+	/**
 	 *	按照给定规则解析字符串:
 	 *	type:
 	 *	true	符号
@@ -151,6 +207,7 @@ class MD{
 	 */
 	private function parseLine($str,$type){
 		if(strlen($str) == 0){
+			$this->flag_like = '';
 			return array('type'=>'p','parts'=>[]);	//返回空段
 		}
 
@@ -161,6 +218,7 @@ class MD{
 			$br = '';
 		}
 		$str = $valid_str;
+		$output = '';		//需要输出的字符串
 
 		if($type == true){	//标点
 			$type_str = '';	//类型字符串
@@ -178,117 +236,172 @@ class MD{
 			}
 
 			if($this->flag == 'ul' && !in_array($type_str,['+','-']))
-				echo '</ul>';
+				$output.='</ul>';
 			switch($type_str){
 				case '#':
 					$wrap = 'h1';
+					$this->flag_like = 'h1';
 					break;
 				case '##':
 					$wrap = 'h2';
+					$this->flag_like = 'h2';
 					break;
 				case '###':
 					$wrap = 'h3';
+					$this->flag_like = 'h3';
 					break;
 				case '####':
 					$wrap = 'h4';
+					$this->flag_like = 'h4';
 					break;
 				case '#####':
 					$wrap = 'h5';
+					$this->flag_like = 'h5';
 					break;
 				case '######':
 					$wrap = 'h6';
+					$this->flag_like = 'h6';
 					break;
 				case '---':
-					echo '<hr>';
-					continue;
+					$output.='<hr>';
+					$this->flag_like = 'hr';
 					break;
 				case '+':
 				case '-':
 					$wrap = 'li';
+					$this->flag_like = 'ul';
 					if($this->flag != 'code'){
 						if($this->flag != 'ul'){
+							$this->flag_pre = $this->flag;
 							$this->flag = 'ul';
-							echo '<ul>';
+							$output.='<ul>';
 						}
 					}
 					break;
-				case '```':
-					if($this->flag != 'code'){
-						echo '<pre>';
-						$this->flag = 'code';	//代码
+				case '```':	//代码模式,不进行干扰
+					if($this->flag != 'code'){	//不为code,判断是否为单行代码
+						$output.='<pre>';
+						if(preg_match('/\s*```([^`]+)```\s*$/',$str,$mat)){	//单行代码
+							$output.="$mat[1]</pre>";
+							$str = '';
+							$data_str = '';	
+						}else{
+							$this->flag_pre = $this->flag;
+							$this->flag = 'code';	//代码
+						}
 					}else{
-						echo '</pre>';
+						$output.='</pre>';
+						$this->flag_pre = $this->flag;
 						$this->flag = 'idel';						//闲置
 					}
 					break;
 				case '[':
-					if(preg_match('/^\[\s\]\s*(.+)$/',$str,$mat)){
-						echo "<label><input type='checkbox' disabled> $mat[1]</label><br>";
-					}else if(preg_match('/\[([^\]]+)\]\(([^\)]+)\)/',$str,$mat)){
-						echo "<a href='$mat[2]'>$mat[1]</a>".$br;
+					if(preg_match('/^\[\s\]\s*(.+)$/',$str,$mat)){	//选择
+						$output.="<label><input type='checkbox' disabled> $mat[1]</label><br>";
+						$this->flag_like = 'check';
+					}else if(preg_match('/\[([^\]]+)\]\(([^\)]+)\)/',$str,$mat)){	//未选择
+						$output.="<a href='$mat[2]'>$mat[1]</a>".$br;
+						$this->flag_like = 'a';	//网址
 					}
 					break;
 				case '[-]':
-					echo "<label><input type='checkbox' checked disabled>$data_str</label><br>";
+					$output.="<label><input type='checkbox' checked disabled>$data_str</label><br>";
+					$this->flag_like = 'check';
 					break;
 				case '![':
-					$this->flag = 'pic';
 					if(preg_match('/^!\[([^\]]+)\]\(([^\)]+)\)$/',$str,$mat)){
-						echo "<img src='$mat[2]' alt='$mat[1]'>".$br;
+						$output.="<img src='$mat[2]' alt='$mat[1]'>".$br;
+						$this->flag_like = 'img';
 					}else{
-						echo "$str$br";
-					}
-					continue;
-				case '*':
-					if(preg_match('/^\*(.*)\*$/',$str,$mat)){
-						$wrap = 'b';
-						$data_str = $mat[1];
+						$this->flag_like = 'p';		//没有模式
+						$output.="$str$br";
 					}
 					break;
-				case '**':
-					if(preg_match('/^\*\*(.*)\*\*/',$str,$mat)){
+				case '*':	//斜体
+					if(preg_match('/^\*(.*)\*$/',$str,$mat)){
 						$wrap = 'i';
 						$data_str = $mat[1];
+						$this->flag_like = 'i';
+					}
+					break;
+				case '**':	//粗体
+					if(preg_match('/^\*\*(.*)\*\*/',$str,$mat)){
+						$wrap = 'b';
+						$data_str = $mat[1];
+						$this->flag_like = 'b';
 					}
 					break;
 				case '<':
-					echo $str;
+					$output.=$str;
+					$this->flag_like = 'html';
 					break;
 				default:
-					if(!$this->check()){
-						if(preg_match('/^>+$/',$type_str)){
+					if(!$this->check()){	//非代码模式
+						if(preg_match('/^>+$/',$type_str)){	//引用	
 							$level = strlen($type_str);
-							echo $this->genQuote($level,$data_str);
+							$this->flag_like = 'quote';
+							$output.=$this->genQuote($level,$data_str);	//引用
+						}else if(preg_match('/^([^\|\n\r]+)(?:\|[^\|\n\r]+)+$/',$str)){	//表格确定格式---|---|....
+							if($this->flag == 'table'){
+								$this->flag_like = 'table';
+								$output.='<table><thead>'.$this->genRow($this->buf,'th').'</thead><tbody>';
+							}else{	//非表格格式,上一行没有标题
+								$this->flag_like = 'p';		//没有格式
+								$output.=$this->buf;
+								$this->buf = '';
+							}
 						}else{
-							echo $str.'<br>';
+							$this->flag_like = 'p';
+							$output.=$str.'<br>';
 						}
 					}
 			}
 			$data_str = htmlspecialchars($data_str);
 			if(!$this->check()){	//代码
-				if(!empty($wrap))echo "<$wrap>$data_str</$wrap>".$br;
+				if(!empty($wrap)) $output.="<$wrap>$data_str</$wrap>".$br;
 			}else if($type_str!='```'){
-				echo htmlspecialchars($str).'<br>';
+				$output.=htmlspecialchars($str).'<br>';
 			}
-		}else{
-			if($this->flag == 'code'){
+		}else{	//首个非空字符不为符号
+			if($this->flag == 'code'){	//代码,直接输出
 				$str=str_replace("\t",'    ',$str);
-				echo htmlspecialchars($str).'<br>';
+				$output.=htmlspecialchars($str).'<br>';
 			}else if(is_numeric($str[0])){	//可能为有序列表,也可能是表格
 				foreach($this->every($str) as $ch){
-					echo $ch;
+					$output.=$ch;
 				}
-				echo '<br>';
-			}else if(preg_match('/^([^\|]+)(?!|([^\|]+)){1,}$/',$str,$mat)){
-				var_dump($mat);
-			}else{
-				echo $str.'<br>';
+				$output.='<br>';
+			}else if(preg_match('/^([^\|\n\r]+)(?:\|[^\|\n\r]+)+$/',$str)){	//表格
+				$mat = explode('|',$str);
+
+				if($this->flag!='table'){	//进入表格
+					$this->buf = $str;
+					$this->flag_like = 'table';
+					$wrap = '';
+				}else{
+					$output.=$this->genRow($str);
+				}
+				//echo $mat[0].'<br>';
+				//var_dump($mat);
+			}else{	//其他
+				$output.=$str.'<br>';
 			}
 		}
+		if(!$this->check()){	//不为代码,设置flag
+			$this->flag_pre = $this->flag;
+			$this->flag = $this->flag_like;
+			if($this->flag_pre == 'table' && $this->flag != 'table')
+				$output='</table>'.$output;
+		}
+
+		return $this->parseInner($output);	//输出需要输出的内容
 	}
 
 	//获取输出内容
 	public function output(){
 		$this->parse();
+		foreach($this->lines as $line){
+			echo $line;
+		}
 	}
 }
