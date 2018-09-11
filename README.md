@@ -1,6 +1,6 @@
 # php-markdown
 markdown translater  
-**这是一个将基于PHP的markdown文档解析项目,可将md文件解析成显示友好的页面**  
+**这是一个基于PHP开发的markdown文档解析项目,可将md文件解析成显示友好的html页面**  
 **当前版本支持以下特性**  
 1. 普通文本
 2. 粗体
