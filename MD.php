@@ -351,11 +351,7 @@ class MD{
 					break;
 				default:
 					if(!$this->check()){	//非代码模式
-						if(preg_match('/(\-{3,})|(\={3,})/',$type_str)){	//hr
-							$output.='<hr>';
-							$this->flag_like = 'hr';
-							break;
-						}else if(preg_match('/^>+$/',$type_str)){	//引用	
+						if(preg_match('/^>+$/',$type_str)){	//引用	
 							$level = strlen($type_str);
 							$this->flag_like = 'quote';
 							$output.=$this->genQuote($level,$data_str);	//引用
@@ -368,6 +364,10 @@ class MD{
 								$output.=$this->buf;
 								$this->buf = '';
 							}
+						}else if(preg_match('/^\s*(\-{3,})|(\={3,})$/',$type_str)){	//hr
+							$output.='<hr>';
+							$this->flag_like = 'hr';
+							break;
 						}else{
 							$this->flag_like = 'p';
 							$output.=$str.'<br>';
