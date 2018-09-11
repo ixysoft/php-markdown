@@ -15,7 +15,12 @@
 	}
 
 	h1,h2,h3,h4,h5,h6{
-		margin:10px 0;
+		margin:10px 0 0 0;
+	}
+
+	h1,h2,h3{
+		padding-bottom:12px;
+		border-bottom:solid 1px #ddd;
 	}
 
 	body,ul{
