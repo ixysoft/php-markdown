@@ -9,6 +9,11 @@
 		border:none;
 	}
 
+	li{
+		list-style-type: square;
+		padding:2px;
+	}
+
 	h1,h2,h3,h4,h5,h6{
 		margin:10px 0;
 	}
@@ -144,7 +149,7 @@ class MD{
 					switch($this->flag){
 						case 'ul':
 						case 'ol':
-							echo "</$this->flag>";
+							$ret[]="</$this->flag>";
 							$this->flag_pre = $this->flag;
 							$this->flag = 'idel';
 						break;
@@ -192,8 +197,8 @@ class MD{
 		$str=preg_replace('/\*([^\*\n\r]+)\*/','<i>\1</i>',$str);						//斜体
 		$str=preg_replace('/```([^`\n\r]+)```/','<code>\1</code>',$str);					//代码
 		$str=preg_replace('/`([^`\n\r]+)`/','<code>\1</code>',$str);						//代码
-		$str=preg_replace('/!\[([^\]\r\n]+)\]\(([^\]\r\n]+)\)/','<img src="\2" alt="\1" title="\1">',$str);	//图片
-		$str=preg_replace('/\[([^\]\r\n]+)\]\(([^\]\r\n]+)\)/','<a href="\2">\1</a>',$str);	//图片
+		$str=preg_replace('/!\[([^\]\r\n]+)\]\(([^\)\r\n]+)\)/','<img src="\2" alt="\1" title="\1">',$str);	//图片
+		$str=preg_replace('/\[([^\]\r\n]+)\]\(([^\)\r\n]+)\)/','<a href="\2">\1</a>',$str);	//图片
 		return $str;
 	}
 
@@ -207,8 +212,7 @@ class MD{
 	 */
 	private function parseLine($str,$type){
 		if(strlen($str) == 0){
-			$this->flag_like = '';
-			return array('type'=>'p','parts'=>[]);	//返回空段
+		 	return array('type'=>'p','parts'=>[]);	//返回空段
 		}
 
 		$valid_str = rtrim($str);	//去除右边的空格
@@ -235,8 +239,6 @@ class MD{
 					$data_str .= $ch;
 			}
 
-			if($this->flag == 'ul' && !in_array($type_str,['+','-']))
-				$output.='</ul>';
 			switch($type_str){
 				case '#':
 					$wrap = 'h1';
@@ -261,10 +263,6 @@ class MD{
 				case '######':
 					$wrap = 'h6';
 					$this->flag_like = 'h6';
-					break;
-				case '---':
-					$output.='<hr>';
-					$this->flag_like = 'hr';
 					break;
 				case '+':
 				case '-':
@@ -302,6 +300,10 @@ class MD{
 					}else if(preg_match('/\[([^\]]+)\]\(([^\)]+)\)/',$str,$mat)){	//未选择
 						$output.="<a href='$mat[2]'>$mat[1]</a>".$br;
 						$this->flag_like = 'a';	//网址
+					}else if(preg_match('/^\s*(\[\d+\]\:)\s+([^\s]+)\s+([^\r\n]+)\s*$/',$str,$mat)){
+						$output.="$mat[1] <a href='$mat[2]'>$mat[3]</a>";
+					}else{
+						$output.=$str;
 					}
 					break;
 				case '[-]':
@@ -322,6 +324,18 @@ class MD{
 						$wrap = 'i';
 						$data_str = $mat[1];
 						$this->flag_like = 'i';
+					}else if(preg_match('/^\s*\*\s+(.+)\s*$/',$str,$mat)){
+						$str=$mat[1];
+						$br = '';
+						$wrap = 'li';
+						$this->flag_like = 'ul';
+						if($this->flag != 'code'){
+							if($this->flag != 'ul'){
+								$this->flag_pre = $this->flag;
+								$this->flag = 'ul';
+								$output.='<ul>';
+							}
+						}
 					}
 					break;
 				case '**':	//粗体
@@ -337,7 +351,11 @@ class MD{
 					break;
 				default:
 					if(!$this->check()){	//非代码模式
-						if(preg_match('/^>+$/',$type_str)){	//引用	
+						if(preg_match('/(\-{3,})|(\={3,})/',$type_str)){	//hr
+							$output.='<hr>';
+							$this->flag_like = 'hr';
+							break;
+						}else if(preg_match('/^>+$/',$type_str)){	//引用	
 							$level = strlen($type_str);
 							$this->flag_like = 'quote';
 							$output.=$this->genQuote($level,$data_str);	//引用
@@ -367,8 +385,14 @@ class MD{
 				$str=str_replace("\t",'    ',$str);
 				$output.=htmlspecialchars($str).'<br>';
 			}else if(is_numeric($str[0])){	//可能为有序列表,也可能是表格
-				foreach($this->every($str) as $ch){
-					$output.=$ch;
+				if(preg_match('/^\s*\d+\.\s+([^\r\n]+)\s*$/',$str)){	//有序列表
+					$this->flag_like = 'ol';
+					$output.=$str;
+				}else{
+					$this->flag_like = 'idel';
+					foreach($this->every($str) as $ch){
+						$output.=$ch;
+					}
 				}
 				$output.='<br>';
 			}else if(preg_match('/^([^\|\n\r]+)(?:\|[^\|\n\r]+)+$/',$str)){	//表格
@@ -387,11 +411,15 @@ class MD{
 				$output.=$str.'<br>';
 			}
 		}
+
 		if(!$this->check()){	//不为代码,设置flag
 			$this->flag_pre = $this->flag;
 			$this->flag = $this->flag_like;
 			if($this->flag_pre == 'table' && $this->flag != 'table')
 				$output='</table>'.$output;
+			else if($this->flag_pre == 'ul' && $this->flag != 'ul'){
+				$output='</ul>'.$output;
+			}
 		}
 
 		return $this->parseInner($output);	//输出需要输出的内容
