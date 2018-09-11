@@ -45,6 +45,19 @@
 
 	table{
 		margin:10px 0;
+		text-align:center;
+	}
+
+	.table-left{
+		text-align:left;
+	}
+
+	.table-center{
+		text-align: center;
+	}
+
+	.table-right{
+		text-align: right;
 	}
 
 	tr:nth-child(even){
