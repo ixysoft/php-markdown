@@ -163,6 +163,7 @@ class MD{
 				if(strlen($line)){
 					$ch = $line[0];	//判断第一个字符
 					$type=ctype_punct($ch);//标点符号
+					if($this->flag !== 'code') $line=preg_replace('/\s{2,}$/','<br>',$line);	//非代码模式
 					$ret[] = $this->parseLine($line,$type);	//解析行
 				}else{
 					switch($this->flag){
@@ -171,6 +172,10 @@ class MD{
 							$ret[]="</$this->flag>";
 							$this->flag_pre = $this->flag;
 							$this->flag = 'idel';
+						break;
+						case 'table':
+							$this->flag = 'idel';
+							$ret[]='</table>';
 						break;
 					}
 				}
@@ -235,11 +240,7 @@ class MD{
 		}
 
 		$valid_str = rtrim($str);	//去除右边的空格
-		if(strlen($str) - strlen($valid_str) >= 2){
-			$br = '<br>';
-		}else{
-			$br = '';
-		}
+
 		$str = $valid_str;
 		$output = '';		//需要输出的字符串
 
@@ -316,10 +317,10 @@ class MD{
 					if(preg_match('/^\[\s\]\s*(.+)$/',$str,$mat)){	//选择
 						$output.="<label><input type='checkbox' disabled> $mat[1]</label><br>";
 						$this->flag_like = 'check';
-					}else if(preg_match('/\[([^\]]+)\]\(([^\)]+)\)/',$str,$mat)){	//未选择
-						$output.="<a href='$mat[2]'>$mat[1]</a>".$br;
+					}else if(preg_match('/^\[([^\]]+)\]\(([^\)]+)\)([^\s]+)\s*$/',$str,$mat)){	//未选择
+						$output.="<a href='$mat[2]'>$mat[1]</a>".$this->parseInner($mat[3]);
 						$this->flag_like = 'a';	//网址
-					}else if(preg_match('/^\s*(\[\d+\]\:)\s+([^\s]+)\s+([^\r\n]+)\s*$/',$str,$mat)){
+					}else if(preg_match('/^\s*(\[\d+\]\:)\s+([^\s]+)\s+([^\r\n]+)\s*$/',$str,$mat)){	//外部资料
 						$output.="$mat[1] <a href='$mat[2]'>$mat[3]</a>";
 					}else{
 						$output.=$str;
@@ -330,22 +331,20 @@ class MD{
 					$this->flag_like = 'check';
 					break;
 				case '![':
-					if(preg_match('/^!\[([^\]]+)\]\(([^\)]+)\)$/',$str,$mat)){
-						$output.="<img src='$mat[2]' alt='$mat[1]'>".$br;
+					if(preg_match('/^!\[([^\]]+)\]\(([^\)]+)\)([^\s]+)\s*$/',$str,$mat)){
+						$output.="<img src='$mat[2]' alt='$mat[1]'>".$this->parseInner($mat[3]);
 						$this->flag_like = 'img';
 					}else{
 						$this->flag_like = 'p';		//没有模式
-						$output.="$str$br";
+						$output.="$str";
 					}
 					break;
 				case '*':	//斜体
-					if(preg_match('/^\*(.*)\*$/',$str,$mat)){
-						$wrap = 'i';
-						$data_str = $mat[1];
+					if(preg_match('/^\*(.*)\*([^\s]+)\s*$/',$str,$mat)){
+						$output.=$this->parseInner($str);
 						$this->flag_like = 'i';
 					}else if(preg_match('/^\s*\*\s+(.+)\s*$/',$str,$mat)){
 						$str=$mat[1];
-						$br = '';
 						$wrap = 'li';
 						$this->flag_like = 'ul';
 						if($this->flag != 'code'){
@@ -359,8 +358,7 @@ class MD{
 					break;
 				case '**':	//粗体
 					if(preg_match('/^\*\*(.*)\*\*/',$str,$mat)){
-						$wrap = 'b';
-						$data_str = $mat[1];
+						$output.=$this->parseInner($str);
 						$this->flag_like = 'b';
 					}
 					break;
@@ -395,7 +393,7 @@ class MD{
 			}
 			$data_str = htmlspecialchars($data_str);
 			if(!$this->check()){	//代码
-				if(!empty($wrap)) $output.="<$wrap>$data_str</$wrap>".$br;
+				if(!empty($wrap)) $output.="<$wrap>$data_str</$wrap>";
 			}else if($type_str!='```'){
 				$output.=htmlspecialchars($str).'<br>';
 			}
