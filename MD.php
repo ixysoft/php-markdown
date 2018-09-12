@@ -314,10 +314,10 @@ class MD{
 				case '```':	//代码模式,不进行干扰
 					if($this->flag != 'code'){	//不为code,判断是否为单行代码
 						$output.='<pre>';
-						if(preg_match('/\s*```([^`]+)```\s*$/',$str,$mat)){	//单行代码
-							$output.="$mat[1]</pre>";
+						if(preg_match('/^\s*```([^`]+)```([^\s]+)\s*$/',$str,$mat)){	//单行代码
+							$output.="$mat[1]</pre>$mat[2]";
 							$str = '';
-							$data_str = '';	
+							$data_str = '';
 						}else{
 							$this->flag_pre = $this->flag;
 							$this->flag = 'code';	//代码
