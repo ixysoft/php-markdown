@@ -19,8 +19,19 @@
 	}
 
 	h1,h2,h3{
-		padding-bottom:12px;
 		border-bottom:solid 1px #ddd;
+	}
+
+	h1{
+		padding-bottom:12px;
+	}
+
+	h2{
+		padding-bottom: 6px;
+	}
+
+	h3{
+		padding-bottom: 2px;
 	}
 
 	body,ul{
@@ -104,6 +115,7 @@
 	*	url 	网址
 	*	bold 	加粗
 	*	italia  斜体
+	*	el    	空行
 	*
 	*	idel 	闲置
 	*/
@@ -165,7 +177,7 @@ class MD{
 					$type=ctype_punct($ch);//标点符号
 					if($this->flag !== 'code') $line=preg_replace('/\s{2,}$/','<br>',$line);	//非代码模式
 					$ret[] = $this->parseLine($line,$type);	//解析行
-				}else{
+				}else{	//空行
 					switch($this->flag){
 						case 'ul':
 						case 'ol':
@@ -177,6 +189,9 @@ class MD{
 							$this->flag = 'idel';
 							$ret[]='</table>';
 						break;
+						default:
+							if($this->flag != 'el') $ret[] = '<br>';
+							$this->flag = 'el';	//空行
 					}
 				}
 			}
@@ -391,9 +406,11 @@ class MD{
 						}
 					}
 			}
-			$data_str = htmlspecialchars($data_str);
+			$br = '';
+			preg_match('/^(.*)(<br\s*\/?>)?$/',$data_str,$mat);
+			$data_str = htmlspecialchars($mat[1]);
 			if(!$this->check()){	//代码
-				if(!empty($wrap)) $output.="<$wrap>$data_str</$wrap>";
+				if(!empty($wrap)) $output.="<$wrap>$mat[1]</$wrap>".(isset($mat[2])?'<br>':'');
 			}else if($type_str!='```'){
 				$output.=htmlspecialchars($str).'<br>';
 			}
@@ -425,6 +442,7 @@ class MD{
 				//echo $mat[0].'<br>';
 				//var_dump($mat);
 			}else{	//其他
+				$this->flag = 'p';
 				$output.=$str;
 			}
 		}
@@ -445,8 +463,6 @@ class MD{
 	//获取输出内容
 	public function output(){
 		$this->parse();
-		foreach($this->lines as $line){
-			echo $line;
-		}
+		echo implode('',$this->lines);
 	}
 }
