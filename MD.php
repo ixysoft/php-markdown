@@ -38,6 +38,11 @@
 		padding:10px 20px;
 	}
 
+	body{
+		max-width:1024px;
+		margin:0 auto;
+	}
+
 	blockquote{
 		border-left:solid 4px #bbb;
 		background-color:#eee;
@@ -49,6 +54,10 @@
 		font-size:12px;
 		font-style: italic;
 		font-family: consolas,楷体;
+	}
+
+	table{
+		width:100%;
 	}
 
 	table,td,th{
