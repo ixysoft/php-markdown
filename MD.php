@@ -425,7 +425,7 @@ class MD{
 				//echo $mat[0].'<br>';
 				//var_dump($mat);
 			}else{	//其他
-				$output.=$str.'<br>';
+				$output.=$str;
 			}
 		}
 
