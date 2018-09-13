@@ -2,6 +2,7 @@
 <?php
 	Header('Content:text/html;charset=utf-8');
 ?>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
 	body,ol,ul,li,img,p{
 		padding:0;
@@ -104,8 +105,9 @@
 		margin:10px 0;
 	}
 
-	pre{
+    pre{
 		padding:10px 12px;
+        overflow-x:auto;
 	}
 </style>
 <?php
